@@ -1,0 +1,1259 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>水印工坊</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17191c;
+        --ink-soft: #30343a;
+        --muted: #6c727c;
+        --line: #e2e5e9;
+        --line-strong: #d3d7dc;
+        --paper: #f4f5f7;
+        --panel: #ffffff;
+        --panel-soft: #f8f9fa;
+        --stage: #1d2126;
+        --accent: #14765d;
+        --accent-dark: #0b5e4a;
+        --green: #14765d;
+        --focus: #1774c8;
+        --danger: #b33a31;
+        --radius: 8px;
+        font-family: "Avenir Next", "PingFang SC", "Helvetica Neue", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-width: 320px;
+        background: var(--paper);
+      }
+
+      body {
+        min-width: 320px;
+        min-height: 100vh;
+        margin: 0;
+        color: var(--ink);
+        background: var(--paper);
+      }
+
+      button,
+      input,
+      select {
+        min-height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: inherit;
+        background: #fff;
+        font: 600 0.8rem/1.2 "Avenir Next", "PingFang SC", sans-serif;
+        transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+      }
+
+      button:not(:disabled):hover,
+      input:not(:disabled):hover,
+      select:not(:disabled):hover {
+        border-color: var(--line-strong);
+      }
+
+      button,
+      input[type="file"],
+      input[type="range"],
+      input[type="color"],
+      select {
+        cursor: pointer;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      .dropzone:focus-visible {
+        border-color: var(--focus);
+        outline: 3px solid color-mix(in srgb, var(--focus) 28%, transparent);
+        outline-offset: 2px;
+      }
+
+      button:disabled,
+      input:disabled,
+      select:disabled {
+        cursor: not-allowed;
+        opacity: 0.48;
+      }
+
+      .app-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+        grid-template-rows: 60px minmax(0, 1fr) auto;
+        min-width: 0;
+        min-height: 640px;
+        height: 100vh;
+        height: 100dvh;
+      }
+
+      .topbar {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        min-height: 60px;
+        padding: 8px clamp(18px, 2.4vw, 32px);
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+        z-index: 2;
+      }
+
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+        font-weight: 750;
+        letter-spacing: 0;
+        white-space: nowrap;
+      }
+
+      .brand span,
+      .local-note {
+        color: var(--muted);
+        font: 650 0.68rem/1.3 "Avenir Next", "PingFang SC", sans-serif;
+      }
+
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .compact-select {
+        min-width: 92px;
+        padding: 0 30px 0 12px;
+      }
+
+      .replace-button,
+      .primary-button {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 0 14px;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      .replace-button {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel-soft);
+        font: 700 0.78rem/1 "Avenir Next", "PingFang SC", sans-serif;
+      }
+
+      .replace-button input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        opacity: 0;
+      }
+
+      .primary-button {
+        border-color: var(--accent);
+        color: #fff;
+        background: var(--accent);
+        font-weight: 800;
+        box-shadow: 0 5px 14px rgba(20, 118, 93, 0.2);
+      }
+
+      .primary-button:not(:disabled):hover {
+        border-color: var(--accent-dark);
+        background: var(--accent-dark);
+      }
+
+      .stage {
+        grid-column: 1;
+        grid-row: 2;
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-width: 0;
+        min-height: 0;
+        padding: clamp(24px, 4vw, 48px);
+        overflow: hidden;
+        background-color: var(--stage);
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+        background-size: 20px 20px;
+      }
+
+      .canvas-frame {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: min(100%, 820px);
+        max-height: min(60vh, 600px);
+        min-height: 220px;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: var(--radius);
+        background: #eceef0;
+        box-shadow: 0 16px 42px rgba(0, 0, 0, 0.26);
+      }
+
+      .canvas-frame.has-image {
+        min-height: 0;
+      }
+
+      #preview-canvas {
+        display: none;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      #preview-canvas.can-drag {
+        cursor: grab;
+      }
+
+      #preview-canvas.is-dragging {
+        cursor: grabbing;
+      }
+
+      .dropzone {
+        position: absolute;
+        inset: 16px;
+        display: grid;
+        place-content: center;
+        gap: 10px;
+        padding: 28px;
+        border: 1px dashed #aeb4bc;
+        border-radius: 7px;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.97);
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 180ms ease, background-color 180ms ease;
+      }
+
+      .dropzone.is-over {
+        border-color: var(--accent);
+        background: #f1faf7;
+      }
+
+      .dropzone-mark {
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 4px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        color: var(--accent-dark);
+        background: #f3f8f6;
+        font: 450 1.55rem/1 "Avenir Next", sans-serif;
+      }
+
+      .dropzone strong {
+        color: var(--ink);
+        font-size: clamp(1.15rem, 2.2vw, 1.55rem);
+      }
+
+      .dropzone span:last-child {
+        font: 550 0.78rem/1.5 "Avenir Next", "PingFang SC", sans-serif;
+      }
+
+      .control-console {
+        grid-column: 2;
+        grid-row: 2;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-content: start;
+        gap: 0;
+        min-width: 0;
+        overflow-y: auto;
+        border-left: 1px solid var(--line);
+        background: var(--panel);
+        scrollbar-width: thin;
+        scrollbar-color: var(--line-strong) transparent;
+      }
+
+      .control-section {
+        display: grid;
+        align-content: start;
+        gap: 10px;
+        min-width: 0;
+        padding: 16px 20px 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .control-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 0;
+        color: var(--ink-soft);
+        font: 750 0.82rem/1.2 "Avenir Next", "PingFang SC", sans-serif;
+      }
+
+      .control-title output {
+        color: var(--accent-dark);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .control-section label {
+        color: var(--muted);
+        font: 650 0.72rem/1.2 "Avenir Next", "PingFang SC", sans-serif;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field input,
+      .field select {
+        width: 100%;
+        min-width: 0;
+        padding: 0 10px;
+      }
+
+      .field input[type="range"] {
+        min-height: 32px;
+        padding: 0;
+        accent-color: var(--accent);
+      }
+
+      .field input[type="color"] {
+        padding: 4px;
+      }
+
+      .inline-fields {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: end;
+        gap: 7px;
+      }
+
+      .inline-fields > span {
+        padding-bottom: 13px;
+        color: var(--muted);
+        font: 700 0.8rem/1 ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .source-grid {
+        display: grid;
+        grid-template-columns: 1fr 72px;
+        gap: 8px;
+      }
+
+      .size-control,
+      .rotation-control {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 66px;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .size-control input[type="number"],
+      .rotation-control input[type="number"] {
+        padding: 0 7px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .image-source {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-height: 40px;
+        padding: 0 10px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel-soft);
+        font: 700 0.78rem/1 "Avenir Next", "PingFang SC", sans-serif;
+      }
+
+      .image-source input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        opacity: 0;
+      }
+
+      .hint {
+        margin: 0;
+        color: var(--muted);
+        font: 550 0.7rem/1.45 "Avenir Next", "PingFang SC", sans-serif;
+      }
+
+      .statusbar {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        display: flex;
+        align-items: center;
+        min-height: 34px;
+        margin: 0;
+        padding: 7px clamp(18px, 2.4vw, 32px);
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        background: var(--panel-soft);
+        font: 600 0.72rem/1.35 "Avenir Next", "PingFang SC", sans-serif;
+      }
+
+      .statusbar[data-tone="error"] {
+        color: var(--danger);
+      }
+
+      .statusbar[data-tone="success"] {
+        color: var(--green);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @media (max-width: 960px) {
+        .app-shell {
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: auto auto auto auto;
+          height: auto;
+          min-height: 100vh;
+        }
+
+        .topbar {
+          grid-column: 1;
+          grid-row: 1;
+        }
+
+        .stage {
+          grid-column: 1;
+          grid-row: 2;
+          min-height: 360px;
+          padding: 22px;
+        }
+
+        .control-console {
+          grid-column: 1;
+          grid-row: 3;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          overflow: visible;
+          border-left: 0;
+        }
+
+        .control-section {
+          border-right: 1px solid var(--line);
+        }
+
+        .control-section:nth-child(2n) {
+          border-right: 0;
+        }
+
+        .statusbar {
+          grid-column: 1;
+          grid-row: 4;
+        }
+      }
+
+      @media (max-width: 680px) {
+        button,
+        input,
+        select,
+        .replace-button,
+        .primary-button,
+        .image-source {
+          min-height: 44px;
+        }
+
+        .topbar {
+          align-items: flex-start;
+          padding: 12px 14px;
+        }
+
+        .brand {
+          display: grid;
+          gap: 3px;
+        }
+
+        .local-note,
+        .replace-button span {
+          display: none;
+        }
+
+        .topbar-actions {
+          gap: 6px;
+        }
+
+        .compact-select {
+          min-width: 74px;
+          width: 74px;
+          padding-left: 7px;
+        }
+
+        .replace-button,
+        .primary-button {
+          padding: 0 10px;
+        }
+
+        .replace-button::before {
+          content: "换图";
+        }
+
+        .stage {
+          min-height: 320px;
+          padding: 14px;
+        }
+
+        .canvas-frame {
+          min-height: 230px;
+          max-height: 56vh;
+        }
+
+        .control-console {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .control-section,
+        .control-section:nth-child(2n) {
+          border-right: 0;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .brand span {
+          display: none;
+        }
+
+        .topbar {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .topbar-actions {
+          display: grid;
+          grid-template-columns: minmax(64px, 0.8fr) 74px minmax(96px, 1.2fr);
+          width: 100%;
+          min-width: 0;
+          justify-content: stretch;
+        }
+
+        .primary-button {
+          max-width: none;
+          white-space: nowrap;
+          text-align: center;
+        }
+
+        .stage {
+          min-height: 286px;
+          padding: 10px;
+        }
+
+        .canvas-frame {
+          min-height: 220px;
+        }
+
+        .dropzone {
+          inset: 12px;
+          padding: 20px 14px;
+        }
+
+        .control-console {
+          grid-template-columns: 1fr;
+        }
+
+        .control-section,
+        .control-section:nth-child(2n) {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <h1>水印工坊</h1>
+          <span>WATERMARK EDITOR</span>
+        </div>
+        <div class="topbar-actions">
+          <span class="local-note">图片仅在本地处理</span>
+          <label class="replace-button" for="base-image-input">
+            <span>更换图片</span>
+            <input id="base-image-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+          </label>
+          <select id="export-format" class="compact-select" aria-label="导出格式">
+            <option value="image/png">PNG</option>
+            <option value="image/jpeg">JPEG</option>
+          </select>
+          <button id="download-button" class="primary-button" type="button" disabled>下载图片</button>
+        </div>
+      </header>
+
+      <main class="stage" aria-label="图片预览">
+        <div id="canvas-frame" class="canvas-frame">
+          <canvas id="preview-canvas" aria-label="水印效果预览画布"></canvas>
+          <label id="dropzone" class="dropzone" for="base-image-input" tabindex="0">
+            <span class="dropzone-mark" aria-hidden="true">+</span>
+            <strong>上传一张图片</strong>
+            <span>支持 PNG、JPEG、WebP、GIF，也可以拖放到这里</span>
+          </label>
+        </div>
+      </main>
+
+      <form id="watermark-controls" class="control-console" aria-label="水印设置">
+        <section class="control-section">
+          <h2 class="control-title">水印来源</h2>
+          <div class="field">
+            <label for="watermark-type">类型</label>
+            <select id="watermark-type">
+              <option value="text">文字水印</option>
+              <option value="image">图片水印</option>
+            </select>
+          </div>
+          <div id="text-source" class="field">
+            <label for="watermark-text">水印文字</label>
+            <input id="watermark-text" type="text" maxlength="80" value="WATERMARK" />
+          </div>
+          <div id="image-source" class="field" hidden>
+            <label>图片水印</label>
+            <label class="image-source" for="watermark-image-input">
+              <span id="watermark-image-name">选择图片</span>
+              <input id="watermark-image-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" />
+            </label>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <h2 class="control-title">样式</h2>
+          <div id="text-style" class="source-grid">
+            <div class="field">
+              <label for="text-weight">字重</label>
+              <select id="text-weight">
+                <option value="400" selected>常规</option>
+                <option value="600">中粗</option>
+                <option value="700">粗体</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="text-color">颜色</label>
+              <input id="text-color" type="color" value="#ffffff" />
+            </div>
+          </div>
+          <div class="field">
+            <label class="control-title" for="size-range"><span id="size-label">字号</span> <output id="size-value">5%</output></label>
+            <div class="size-control">
+              <input id="size-range" type="range" min="2" max="100" value="5" />
+              <input id="size-number" type="number" min="2" max="100" step="1" value="5" aria-label="字号百分比" />
+            </div>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <h2 class="control-title">透明与旋转</h2>
+          <div class="field">
+            <label class="control-title" for="opacity-range">透明度 <output id="opacity-value">65%</output></label>
+            <input id="opacity-range" type="range" min="10" max="100" value="65" />
+          </div>
+          <div class="field">
+            <label class="control-title" for="rotation-range">旋转 <output id="rotation-value">-15°</output></label>
+            <div class="rotation-control">
+              <input id="rotation-range" type="range" min="-180" max="180" step="1" value="-15" />
+              <input id="rotation-number" type="number" min="-180" max="180" step="1" value="-15" aria-label="旋转角度数值" />
+            </div>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <h2 class="control-title">排列方式</h2>
+          <div class="field">
+            <label for="watermark-mode">模式</label>
+            <select id="watermark-mode">
+              <option value="single">单个水印</option>
+              <option value="tile" selected>行列平铺</option>
+            </select>
+          </div>
+          <p id="single-hint" class="hint">在预览中拖动水印调整位置。</p>
+          <div id="tile-density" class="inline-fields" hidden>
+            <div class="field">
+              <label for="tile-rows">行</label>
+              <input id="tile-rows" type="number" min="1" max="12" value="2" inputmode="numeric" />
+            </div>
+            <span aria-hidden="true">×</span>
+            <div class="field">
+              <label for="tile-cols">列</label>
+              <input id="tile-cols" type="number" min="1" max="12" value="3" inputmode="numeric" />
+            </div>
+          </div>
+        </section>
+
+        <section id="tile-spacing" class="control-section" hidden>
+          <h2 class="control-title">平铺间距</h2>
+          <div class="field">
+            <label class="control-title" for="gap-x-range">水平 <output id="gap-x-value">12%</output></label>
+            <input id="gap-x-range" type="range" min="0" max="40" value="12" />
+          </div>
+          <div class="field">
+            <label class="control-title" for="gap-y-range">垂直 <output id="gap-y-value">12%</output></label>
+            <input id="gap-y-range" type="range" min="0" max="40" value="12" />
+          </div>
+        </section>
+
+        <section class="control-section">
+          <h2 class="control-title">导出</h2>
+          <div id="quality-field" class="field" hidden>
+            <label class="control-title" for="jpeg-quality">JPEG 质量 <output id="jpeg-quality-value">92%</output></label>
+            <input id="jpeg-quality" type="range" min="50" max="100" value="92" />
+          </div>
+          <p id="image-meta" class="hint">上传图片后显示原始尺寸。</p>
+          <p class="hint">导出始终保持原图像素尺寸。</p>
+        </section>
+      </form>
+
+      <p id="status-message" class="statusbar" role="status" aria-live="polite">等待上传底图</p>
+    </div>
+
+    <script>
+      (() => {
+        "use strict";
+
+        const supportedTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+        const state = {
+          baseImage: null,
+          baseName: "image",
+          watermarkImage: null,
+          watermarkImageName: "",
+          type: "text",
+          mode: "tile",
+          text: "WATERMARK",
+          color: "#ffffff",
+          weight: 400,
+          size: 5,
+          opacity: 65,
+          rotation: -15,
+          x: 0.85,
+          y: 0.88,
+          rows: 2,
+          cols: 3,
+          gapX: 12,
+          gapY: 12,
+          exportFormat: "image/png",
+          jpegQuality: 92,
+          dragging: false,
+          activeMetrics: null,
+          renderPending: false,
+        };
+
+        const elements = {
+          baseInput: document.querySelector("#base-image-input"),
+          watermarkInput: document.querySelector("#watermark-image-input"),
+          canvas: document.querySelector("#preview-canvas"),
+          frame: document.querySelector("#canvas-frame"),
+          dropzone: document.querySelector("#dropzone"),
+          controls: document.querySelector("#watermark-controls"),
+          type: document.querySelector("#watermark-type"),
+          mode: document.querySelector("#watermark-mode"),
+          text: document.querySelector("#watermark-text"),
+          textColor: document.querySelector("#text-color"),
+          textWeight: document.querySelector("#text-weight"),
+          size: document.querySelector("#size-range"),
+          sizeNumber: document.querySelector("#size-number"),
+          sizeLabel: document.querySelector("#size-label"),
+          opacity: document.querySelector("#opacity-range"),
+          rotation: document.querySelector("#rotation-range"),
+          rotationNumber: document.querySelector("#rotation-number"),
+          rows: document.querySelector("#tile-rows"),
+          cols: document.querySelector("#tile-cols"),
+          gapX: document.querySelector("#gap-x-range"),
+          gapY: document.querySelector("#gap-y-range"),
+          format: document.querySelector("#export-format"),
+          quality: document.querySelector("#jpeg-quality"),
+          download: document.querySelector("#download-button"),
+          status: document.querySelector("#status-message"),
+          meta: document.querySelector("#image-meta"),
+        };
+
+        function imageWidth(image) {
+          return image?.naturalWidth || image?.width || 0;
+        }
+
+        function imageHeight(image) {
+          return image?.naturalHeight || image?.height || 0;
+        }
+
+        function setStatus(message, tone = "neutral") {
+          elements.status.textContent = message;
+          elements.status.dataset.tone = tone;
+        }
+
+        async function loadImageFile(file) {
+          if (!file || !supportedTypes.has(file.type)) {
+            throw new Error("仅支持 PNG、JPEG、WebP 或 GIF 图片");
+          }
+
+          if (typeof createImageBitmap === "function") {
+            try {
+              return await createImageBitmap(file);
+            } catch (error) {
+              // 继续使用 Image 回退方案。
+            }
+          }
+
+          return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const image = new Image();
+            image.onload = () => {
+              URL.revokeObjectURL(url);
+              resolve(image);
+            };
+            image.onerror = () => {
+              URL.revokeObjectURL(url);
+              reject(new Error("图片解码失败，请尝试其他文件"));
+            };
+            image.src = url;
+          });
+        }
+
+        function getRotatedBounds(width, height, radians) {
+          const cosine = Math.abs(Math.cos(radians));
+          const sine = Math.abs(Math.sin(radians));
+          return {
+            width: width * cosine + height * sine,
+            height: width * sine + height * cosine,
+          };
+        }
+
+        function fitMetricsInside(metrics, maxWidth, maxHeight, radians) {
+          const bounds = getRotatedBounds(metrics.width, metrics.height, radians);
+          const scale = Math.min(1, maxWidth / bounds.width, maxHeight / bounds.height);
+          return {
+            ...metrics,
+            width: metrics.width * scale,
+            height: metrics.height * scale,
+            fontSize: metrics.fontSize ? metrics.fontSize * scale : undefined,
+          };
+        }
+
+        function getWatermarkMetrics(context, outputWidth, outputHeight) {
+          const targetHeight = Math.min(outputWidth, outputHeight) * (state.size / 100);
+          if (state.type === "image" && state.watermarkImage) {
+            const ratio = imageWidth(state.watermarkImage) / imageHeight(state.watermarkImage);
+            return { kind: "image", width: targetHeight * ratio, height: targetHeight };
+          }
+
+          const fontSize = targetHeight;
+          context.save();
+          context.font = `${state.weight} ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+          const measured = context.measureText(state.text || " ");
+          context.restore();
+          return {
+            kind: "text",
+            width: Math.max(1, measured.width),
+            height: fontSize * 1.12,
+            fontSize,
+          };
+        }
+
+        function drawWatermark(context, metrics, centerX, centerY) {
+          const radians = (state.rotation * Math.PI) / 180;
+          context.save();
+          context.translate(centerX, centerY);
+          context.rotate(radians);
+          context.globalAlpha = state.opacity / 100;
+
+          if (metrics.kind === "image" && state.watermarkImage) {
+            context.drawImage(
+              state.watermarkImage,
+              -metrics.width / 2,
+              -metrics.height / 2,
+              metrics.width,
+              metrics.height,
+            );
+          } else {
+            context.font = `${state.weight} ${metrics.fontSize}px ui-sans-serif, system-ui, sans-serif`;
+            context.fillStyle = state.color;
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillText(state.text, 0, 0);
+          }
+          context.restore();
+        }
+
+        function clampSinglePosition(metrics, outputWidth, outputHeight) {
+          const radians = (state.rotation * Math.PI) / 180;
+          const bounds = getRotatedBounds(metrics.width, metrics.height, radians);
+          const halfWidth = Math.min(outputWidth / 2, bounds.width / 2);
+          const halfHeight = Math.min(outputHeight / 2, bounds.height / 2);
+          return {
+            x: Math.min(outputWidth - halfWidth, Math.max(halfWidth, state.x * outputWidth)),
+            y: Math.min(outputHeight - halfHeight, Math.max(halfHeight, state.y * outputHeight)),
+          };
+        }
+
+        function renderScene(context, outputWidth, outputHeight, options = {}) {
+          context.save();
+          context.clearRect(0, 0, outputWidth, outputHeight);
+          if (options.background) {
+            context.fillStyle = options.background;
+            context.fillRect(0, 0, outputWidth, outputHeight);
+          }
+          context.drawImage(state.baseImage, 0, 0, outputWidth, outputHeight);
+
+          const watermarkReady = state.type === "text" ? state.text.trim() : state.watermarkImage;
+          if (!watermarkReady) {
+            context.restore();
+            return;
+          }
+
+          const radians = (state.rotation * Math.PI) / 180;
+          const naturalMetrics = getWatermarkMetrics(context, outputWidth, outputHeight);
+          if (state.mode === "tile") {
+            const cellWidth = outputWidth / state.cols;
+            const cellHeight = outputHeight / state.rows;
+            const maxWidth = cellWidth * (1 - (state.gapX * 2) / 100);
+            const maxHeight = cellHeight * (1 - (state.gapY * 2) / 100);
+            const metrics = naturalMetrics.kind === "text"
+              ? naturalMetrics
+              : fitMetricsInside(naturalMetrics, maxWidth, maxHeight, radians);
+            for (let row = 0; row < state.rows; row += 1) {
+              for (let col = 0; col < state.cols; col += 1) {
+                drawWatermark(context, metrics, (col + 0.5) * cellWidth, (row + 0.5) * cellHeight);
+              }
+            }
+            state.activeMetrics = null;
+          } else {
+            const metrics = naturalMetrics.kind === "text"
+              ? naturalMetrics
+              : fitMetricsInside(naturalMetrics, outputWidth, outputHeight, radians);
+            const position = clampSinglePosition(metrics, outputWidth, outputHeight);
+            state.x = position.x / outputWidth;
+            state.y = position.y / outputHeight;
+            drawWatermark(context, metrics, position.x, position.y);
+            state.activeMetrics = { ...metrics, x: position.x, y: position.y };
+          }
+          context.restore();
+        }
+
+        function updateDownloadState() {
+          const hasWatermark = state.type === "text" ? Boolean(state.text.trim()) : Boolean(state.watermarkImage);
+          elements.download.disabled = !(state.baseImage && hasWatermark);
+        }
+
+        function setEditorControlsEnabled(enabled) {
+          for (const control of elements.controls.querySelectorAll("input, select, button")) {
+            control.disabled = !enabled;
+          }
+          updateDownloadState();
+        }
+
+        function resizePreview() {
+          if (!state.baseImage) return;
+          const ratio = imageWidth(state.baseImage) / imageHeight(state.baseImage);
+          elements.frame.style.aspectRatio = String(ratio);
+          elements.frame.style.width = "min(100%, 820px)";
+          const cssWidth = elements.frame.clientWidth;
+          const cssHeight = cssWidth / ratio;
+          const stageHeight = Math.max(220, elements.frame.parentElement.clientHeight - 48);
+          const maxHeight = Math.min(stageHeight, window.innerHeight * 0.6, 600);
+          const fittedHeight = Math.min(cssHeight, maxHeight);
+          const fittedWidth = fittedHeight * ratio;
+          if (fittedWidth < cssWidth) elements.frame.style.width = `${fittedWidth}px`;
+          const dpr = Math.min(2, window.devicePixelRatio || 1);
+          elements.canvas.width = Math.max(1, Math.round(fittedWidth * dpr));
+          elements.canvas.height = Math.max(1, Math.round(fittedHeight * dpr));
+        }
+
+        function renderPreview() {
+          state.renderPending = false;
+          if (!state.baseImage) return;
+          const context = elements.canvas.getContext("2d");
+          renderScene(context, elements.canvas.width, elements.canvas.height);
+          updateDownloadState();
+        }
+
+        function requestRender() {
+          if (state.renderPending) return;
+          state.renderPending = true;
+          requestAnimationFrame(renderPreview);
+        }
+
+        function clampNumber(value, minimum, maximum, fallback) {
+          const number = Number(value);
+          return Number.isFinite(number) ? Math.min(maximum, Math.max(minimum, number)) : fallback;
+        }
+
+        function syncConditionalControls() {
+          const isText = state.type === "text";
+          const isTile = state.mode === "tile";
+          document.querySelector("#text-source").hidden = !isText;
+          document.querySelector("#image-source").hidden = isText;
+          document.querySelector("#text-style").hidden = !isText;
+          elements.sizeLabel.textContent = isText ? "字号" : "大小";
+          elements.sizeNumber.setAttribute("aria-label", isText ? "字号百分比" : "图片水印大小百分比");
+          document.querySelector("#single-hint").hidden = isTile;
+          document.querySelector("#tile-density").hidden = !isTile;
+          document.querySelector("#tile-spacing").hidden = !isTile;
+          elements.canvas.classList.toggle("can-drag", !isTile && Boolean(state.baseImage));
+          updateDownloadState();
+        }
+
+        async function handleBaseFile(file) {
+          try {
+            setStatus("正在读取底图…");
+            const image = await loadImageFile(file);
+            if (state.baseImage?.close) state.baseImage.close();
+            state.baseImage = image;
+            setEditorControlsEnabled(true);
+            state.baseName = file.name.replace(/\.[^.]+$/, "") || "image";
+            elements.dropzone.hidden = true;
+            elements.canvas.style.display = "block";
+            elements.frame.classList.add("has-image");
+            resizePreview();
+            elements.meta.textContent = `${imageWidth(image)} × ${imageHeight(image)} px`;
+            setStatus(`已载入 ${file.name}`, "success");
+            syncConditionalControls();
+            requestRender();
+          } catch (error) {
+            setStatus(error.message || "底图读取失败", "error");
+          }
+        }
+
+        async function handleWatermarkFile(file) {
+          try {
+            setStatus("正在读取图片水印…");
+            const image = await loadImageFile(file);
+            if (state.watermarkImage?.close) state.watermarkImage.close();
+            state.watermarkImage = image;
+            state.watermarkImageName = file.name;
+            document.querySelector("#watermark-image-name").textContent = file.name;
+            setStatus(`已载入水印 ${file.name}`, "success");
+            updateDownloadState();
+            requestRender();
+          } catch (error) {
+            setStatus(error.message || "图片水印读取失败", "error");
+          }
+        }
+
+        function getCanvasPoint(event) {
+          const rect = elements.canvas.getBoundingClientRect();
+          return {
+            x: ((event.clientX - rect.left) / rect.width) * elements.canvas.width,
+            y: ((event.clientY - rect.top) / rect.height) * elements.canvas.height,
+          };
+        }
+
+        function isWatermarkHit(point) {
+          const metrics = state.activeMetrics;
+          if (!metrics) return false;
+          const padding = Math.max(14, Math.min(elements.canvas.width, elements.canvas.height) * 0.025);
+          return (
+            Math.abs(point.x - metrics.x) <= metrics.width / 2 + padding &&
+            Math.abs(point.y - metrics.y) <= metrics.height / 2 + padding
+          );
+        }
+
+        async function exportImage() {
+          if (elements.download.disabled || !state.baseImage) return;
+
+          const output = document.createElement("canvas");
+          output.width = imageWidth(state.baseImage);
+          output.height = imageHeight(state.baseImage);
+          const context = output.getContext("2d");
+          const background = state.exportFormat === "image/jpeg" ? "#ffffff" : null;
+          renderScene(context, output.width, output.height, { background });
+          setStatus("正在生成图片…");
+
+          const blob = await new Promise((resolve, reject) => {
+            output.toBlob(
+              (result) => {
+                if (result) resolve(result);
+                else reject(new Error("浏览器无法生成图片"));
+              },
+              state.exportFormat,
+              state.jpegQuality / 100,
+            );
+          });
+
+          const url = URL.createObjectURL(blob);
+          try {
+            const anchor = document.createElement("a");
+            const extension = state.exportFormat === "image/jpeg" ? "jpg" : "png";
+            anchor.href = url;
+            anchor.download = `${state.baseName}-watermarked.${extension}`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            setStatus("图片已生成并开始下载", "success");
+          } finally {
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          }
+        }
+
+        function bindRange(input, output, stateKey, suffix) {
+          input.addEventListener("input", () => {
+            state[stateKey] = Number(input.value);
+            output.textContent = `${input.value}${suffix}`;
+            requestRender();
+          });
+        }
+
+        elements.baseInput.addEventListener("change", () => {
+          if (elements.baseInput.files[0]) handleBaseFile(elements.baseInput.files[0]);
+          elements.baseInput.value = "";
+        });
+
+        elements.watermarkInput.addEventListener("change", () => {
+          if (elements.watermarkInput.files[0]) handleWatermarkFile(elements.watermarkInput.files[0]);
+          elements.watermarkInput.value = "";
+        });
+
+        elements.dropzone.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            elements.baseInput.click();
+          }
+        });
+
+        elements.dropzone.addEventListener("dragover", (event) => {
+          event.preventDefault();
+          elements.dropzone.classList.add("is-over");
+        });
+        elements.dropzone.addEventListener("dragleave", () => elements.dropzone.classList.remove("is-over"));
+        elements.dropzone.addEventListener("drop", (event) => {
+          event.preventDefault();
+          elements.dropzone.classList.remove("is-over");
+          if (event.dataTransfer.files[0]) handleBaseFile(event.dataTransfer.files[0]);
+        });
+
+        elements.type.addEventListener("change", () => {
+          state.type = elements.type.value;
+          syncConditionalControls();
+          requestRender();
+        });
+        elements.mode.addEventListener("change", () => {
+          state.mode = elements.mode.value;
+          syncConditionalControls();
+          requestRender();
+        });
+        elements.text.addEventListener("input", () => {
+          state.text = elements.text.value;
+          updateDownloadState();
+          requestRender();
+        });
+        elements.textColor.addEventListener("input", () => {
+          state.color = elements.textColor.value;
+          requestRender();
+        });
+        elements.textWeight.addEventListener("change", () => {
+          state.weight = Number(elements.textWeight.value);
+          requestRender();
+        });
+        elements.rows.addEventListener("input", () => {
+          state.rows = clampNumber(elements.rows.value, 1, 12, state.rows);
+          elements.rows.value = state.rows;
+          requestRender();
+        });
+        elements.cols.addEventListener("input", () => {
+          state.cols = clampNumber(elements.cols.value, 1, 12, state.cols);
+          elements.cols.value = state.cols;
+          requestRender();
+        });
+        elements.format.addEventListener("change", () => {
+          state.exportFormat = elements.format.value;
+          document.querySelector("#quality-field").hidden = state.exportFormat !== "image/jpeg";
+        });
+
+        bindRange(elements.size, document.querySelector("#size-value"), "size", "%");
+        bindRange(elements.opacity, document.querySelector("#opacity-value"), "opacity", "%");
+        bindRange(elements.rotation, document.querySelector("#rotation-value"), "rotation", "°");
+        bindRange(elements.gapX, document.querySelector("#gap-x-value"), "gapX", "%");
+        bindRange(elements.gapY, document.querySelector("#gap-y-value"), "gapY", "%");
+        bindRange(elements.quality, document.querySelector("#jpeg-quality-value"), "jpegQuality", "%");
+
+        elements.size.addEventListener("input", () => {
+          elements.sizeNumber.value = elements.size.value;
+        });
+        elements.sizeNumber.addEventListener("input", () => {
+          state.size = clampNumber(elements.sizeNumber.value, 2, 100, state.size);
+          elements.sizeNumber.value = state.size;
+          elements.size.value = state.size;
+          document.querySelector("#size-value").textContent = `${state.size}%`;
+          requestRender();
+        });
+
+        elements.rotation.addEventListener("input", () => {
+          elements.rotationNumber.value = elements.rotation.value;
+        });
+        elements.rotationNumber.addEventListener("input", () => {
+          state.rotation = clampNumber(elements.rotationNumber.value, -180, 180, state.rotation);
+          elements.rotationNumber.value = state.rotation;
+          elements.rotation.value = state.rotation;
+          document.querySelector("#rotation-value").textContent = `${state.rotation}°`;
+          requestRender();
+        });
+
+        elements.canvas.addEventListener("pointerdown", (event) => {
+          if (!state.baseImage || state.mode !== "single") return;
+          const point = getCanvasPoint(event);
+          if (!isWatermarkHit(point)) return;
+          state.dragging = true;
+          elements.canvas.setPointerCapture(event.pointerId);
+          elements.canvas.classList.add("is-dragging");
+        });
+        elements.canvas.addEventListener("pointermove", (event) => {
+          if (!state.dragging) return;
+          const point = getCanvasPoint(event);
+          state.x = point.x / elements.canvas.width;
+          state.y = point.y / elements.canvas.height;
+          requestRender();
+        });
+        elements.canvas.addEventListener("pointerup", (event) => {
+          if (!state.dragging) return;
+          state.dragging = false;
+          if (elements.canvas.hasPointerCapture(event.pointerId)) elements.canvas.releasePointerCapture(event.pointerId);
+          elements.canvas.classList.remove("is-dragging");
+        });
+        elements.canvas.addEventListener("pointercancel", () => {
+          state.dragging = false;
+          elements.canvas.classList.remove("is-dragging");
+        });
+
+        elements.download.addEventListener("click", () => {
+          exportImage().catch((error) => setStatus(error.message || "导出失败，请使用较小图片重试", "error"));
+        });
+        elements.controls.addEventListener("submit", (event) => event.preventDefault());
+        window.addEventListener("resize", () => {
+          if (!state.baseImage) return;
+          resizePreview();
+          requestRender();
+        });
+
+        setEditorControlsEnabled(false);
+        syncConditionalControls();
+        window.__watermarkApp = { state, renderScene, getRotatedBounds, fitMetricsInside };
+      })();
+    </script>
+  </body>
+</html>
